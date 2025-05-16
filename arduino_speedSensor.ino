@@ -32,10 +32,11 @@ int freqIndex = -1;
 void setup(){
   OzOled.init();
   OzOled.setCursorXY(1,1);
-  OzOled.printString("monitor", 1, 1);
-  OzOled.printString("     km/h", 1, 3);
-  OzOled.printString("     Hz", 1, 4);
-  OzOled.printString("     Hz", 1, 5);
+  OzOled.printString("monitor", 1, 0);
+  OzOled.printString("     km/h", 1, 1);
+  OzOled.printString("     Hz in1", 1, 2);
+  OzOled.printString("     Hz in", 1, 3);
+  OzOled.printString("     Hz out", 1, 4);
   tone(pulseOutputPin, freqArr[freqIndex]);
   attachPCINT(digitalPinToPCINT(pulseInputPin), interruption, CHANGE);
 }
@@ -48,6 +49,7 @@ long beforePulseNum = 0;
 long freqOutputTime = 0;
 // 周波数変更時間
 long freqTime = 0;
+long pulseSpans = 0;
 
 void loop(){
   long time = millis();
@@ -57,28 +59,40 @@ void loop(){
     int indexMax = sizeof(freqArr)/sizeof(int);
     freqIndex = (++freqIndex)%indexMax;
     tone(pulseOutputPin, freqArr[freqIndex]);
-    myPrintLong(freqArr[freqIndex], 1, 5);
+    myPrintLong(freqArr[freqIndex], 1, 4);
     freqTime += FREQ_DURATION;
   }
   
   // 0.5秒ごと周波数算出出力
   if(freqOutputTime <= time){
+    // 割り込み中断
+		noInterrupts();
+    long spansTotal = pulseSpans;
     long pulseNum = counter;
+    pulseSpans = 0;
+    // 割り込み再開
+		interrupts();
+    double freqDouble = (pulseNum - beforePulseNum) / spanTotal / 1000000.0;
+    long freq1 (long)freqDouble;
     long freq = (pulseNum - beforePulseNum) * 2;
     if(0 < freq){
-      myPrintLong(long(freq/10), 1, 3);
-      myPrintLong(freq, 1, 4);
-
+      myPrintLong(long(freq/10), 1, 1);
+      myPrintLong(freq1, 1, 2);
+      myPrintLong(freq, 1, 3);
     }
     beforePulseNum = pulseNum;
     freqOutputTime += HALF_SECOND;
   }
 }
 
+volatile unsigned long beforeTime = 0;
 // 割り込み処理（カウント）
 void interruption(){
   if(digitalRead(pulseInputPin) == HIGH){
     counter = (++counter)%100000;
+    unsigned long time = micros();
+    pulseSpans += time - beforeTime;
+    beforeTime = time;
   }
 }
 
