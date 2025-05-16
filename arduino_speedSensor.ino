@@ -72,7 +72,7 @@ void loop(){
     pulseSpans = 0;
     // 割り込み再開
 		interrupts();
-    double freqDouble = (pulseNum - beforePulseNum) / spanTotal / 1000000.0;
+    double freqDouble = (pulseNum - beforePulseNum) / spanTotal;
     long freq1 (long)freqDouble;
     long freq = (pulseNum - beforePulseNum) * 2;
     if(0 < freq){
