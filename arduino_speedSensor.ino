@@ -31,10 +31,8 @@ int freqIndex = -1;
 
 void setup(){
   OzOled.init();
-  OzOled.setCursorXY(1,1);
   OzOled.printString("monitor", 1, 0);
-  OzOled.printString("     km/h", 1, 1);
-  OzOled.printString("     Hz in1", 1, 2);
+  OzOled.printString("     km/h", 1, 2);
   OzOled.printString("     Hz in", 1, 3);
   OzOled.printString("     Hz out", 1, 4);
   tone(pulseOutputPin, freqArr[freqIndex]);
@@ -72,12 +70,10 @@ void loop(){
     pulseSpans = 0;
     // 割り込み再開
 		interrupts();
-    double freqDouble = (pulseNum - beforePulseNum) * 1000000 / spansTotal;
-    long freq1 = (long)freqDouble;
-    long freq = (pulseNum - beforePulseNum) * 2;
+    // 周波数算出
+    long freq = (long)((pulseNum - beforePulseNum) * 1000000 / spansTotal);
     if(0 < freq){
-      myPrintLong(long(freq/10), 1, 1);
-      myPrintLong(freq1, 1, 2);
+      myPrintLong(long(freq/10), 1, 2);
       myPrintLong(freq, 1, 3);
     }
     beforePulseNum = pulseNum;
@@ -89,7 +85,10 @@ volatile unsigned long beforeTime = 0;
 // 割り込み処理（カウント）
 void interruption(){
   if(digitalRead(pulseInputPin) == HIGH){
-    counter = (++counter)%100000;
+    counter++;
+    if(counter < 0){
+      counter = 0;
+    }
     unsigned long time = micros();
     pulseSpans += time - beforeTime;
     beforeTime = time;
@@ -98,13 +97,15 @@ void interruption(){
 
 // long変数表示処理
 void myPrintLong(long value, int x, int y){
+  char spacer = ' ';
   if(10000 <= value){
+    spacer = '0';
     value = value%10000;
   }
   OzOled.setCursorXY(x,y);
   for(int d=1000; 0<d; d/=10){
     if(value/d == 0){
-      OzOled.printChar(' ');
+      OzOled.printChar(spacer);
     }
     else{
       OzOled.printNumber(value);
