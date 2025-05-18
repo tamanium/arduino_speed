@@ -1,11 +1,10 @@
 //#define DEBUG_MODE
 #define PULSE_OUTPUT_MODE
-#ifndef DEBUG_MODE
-  #include <Wire.h>
-#endif
 #ifdef DEBUG_MODE
   #include <TinyWireM.h>
   #include <TinyOzOLED.h>
+#else
+  #include <Wire.h>
 #endif
 #include <PinChangeInterrupt.h>
 
@@ -41,6 +40,7 @@ int freqArr[] = {
   1100,1150,
   1200,1250
 };
+int freqArrSize = sizeof(freqArr)/sizeof(int);
 
 int freqIndex = -1;
 
@@ -50,8 +50,7 @@ void setup(){
     OzOled.printString("monitor", 1, 0);
     OzOled.printString("     km/h", 1, 2);
     OzOled.printString("     Hz in", 1, 3);
-  #endif 
-  #ifndef DEBUG_MODE
+  #else
     Wire.begin(address);
     Wire.onReceive(receiveEvent);
     Wire.onRequest(requestEvent);
@@ -66,24 +65,21 @@ void setup(){
   attachPCINT(digitalPinToPCINT(pulseInputPin), interruption, CHANGE);
 }
 
-// 前回総パルス数
-long beforeCounter = 0;
-// 前回単位時間あたりパルス数
-long beforePulseNum = 0;
-// 周波数出力時間
-long freqOutputTime = 0;
-// 周波数変更時間
-long freqTime = 0;
-long pulseSpans = 0;
+
+long beforeCounter = 0;  // 前回総パルス数
+long beforePulseNum = 0; // 前回単位時間あたりパルス数
+long freqOutputTime = 0; // 周波数出力時間
+long freqTime = 0;       // 周波数変更時間
+long pulseSpans = 0;     // 単位時間あたり波長合計
 
 void loop(){
+  // システム時刻取得(ms)
   long time = millis();
 
   // 周波数変更
   #ifdef PULSE_OUTPUT_MODE
     if(freqTime <= time){
-      int indexMax = sizeof(freqArr)/sizeof(int);
-      freqIndex = (++freqIndex)%indexMax;
+      freqIndex = (++freqIndex)%freqArrSize;
       tone(pulseOutputPin, freqArr[freqIndex]);
       #ifdef DEBUG_MODE
         myPrintLong(freqArr[freqIndex], 1, 4);
@@ -105,8 +101,8 @@ void loop(){
     long freqLong = (long)((pulseNum - beforePulseNum) * 1000000 / spansTotal);
     //buffer[FREQ] = (int)freqLong;
     //buffer[SPEED] = (int)(freqLong / 10);
-    buffer[FREQ] = (buffer[FREQ]+1)%0XFF;
-    buffer[SPEED] = (buffer[FREQ]+2)%0XFF;
+    buffer[FREQ] = (buffer[FREQ]+1)%0xFF;
+    buffer[SPEED] = (buffer[FREQ]+2)%0xFF;
     
     #ifdef DEBUG_MODE
       if(0 < freq){
@@ -135,31 +131,12 @@ void interruption(){
   }
 }
 
-#ifndef DEBUG_MODE
-  /**
-  * I2C通信受信割り込み処理
-  */
-  void receiveEvent(int numByte){
-    while(0 < Wire.available()){
-      regIndex = Wire.read();
-      if(2 < regIndex){
-        regIndex = 0;
-      }
-    }
-  }
 
-  /**
-   * I2C通信リクエスト割り込み処理
-   */
-  void requestEvent(){
-    Wire.write(buffer[regIndex]);
-  }
-#endif
 
 #ifdef DEBUG_MODE
-  /**
-  * long変数表示処理
-  */  
+	/**
+	 * long変数表示処理
+   */  
   void myPrintLong(long value, int x, int y){
     char spacer = ' ';
     if(10000 <= value){
@@ -176,5 +153,24 @@ void interruption(){
         break;
       }
     }
+  }
+#else
+  /**
+   * I2C通信受信割り込み処理
+   */
+  void receiveEvent(int numByte){
+    while(0 < Wire.available()){
+      regIndex = Wire.read();
+      if(2 < regIndex){
+        regIndex = 0;
+      }
+    }
+  }
+
+  /**
+   * I2C通信リクエスト割り込み処理
+   */
+  void requestEvent(){
+    Wire.write(buffer[regIndex]);
   }
 #endif
