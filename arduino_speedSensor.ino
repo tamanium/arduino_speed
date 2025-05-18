@@ -22,7 +22,7 @@ const int FREQ = 0;
 const int SPEED = 1;
 // 変数
 long counter = 0;
-byte buffer[2] = {0, 0};
+byte buffer[2] = {0x02, 0x03};
 int regIndex = 0;
 
 int freqArr[] = {
@@ -156,12 +156,12 @@ void interruption(){
   }
 #else
   /**
-   * I2C通信受信割り込み処理
+   * I2C通信受信割り込み処理+
    */
   void receiveEvent(int numByte){
     while(0 < Wire.available()){
       regIndex = Wire.read();
-      if(2 < regIndex){
+      if(0x01 < regIndex){
         regIndex = 0;
       }
     }
