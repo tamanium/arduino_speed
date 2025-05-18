@@ -1,11 +1,15 @@
-#include <TinyWireM.h>
-#include <TinyOzOLED.h>
+#include <Wire.h>
+//#include <TinyWireM.h>
+//#include <TinyOzOLED.h>
 #include <PinChangeInterrupt.h>
 
 // 速度パルス検知ピン
 #define pulseInputPin 3
 // パルス出力ピン
 #define pulseOutputPin 4
+// I2Cアドレス
+#define address 0x55
+
 // 
 int HALF_SECOND = 527;
 int FREQ_DURATION = HALF_SECOND * 20;
@@ -30,12 +34,16 @@ int freqArr[] = {
 int freqIndex = -1;
 
 void setup(){
-  OzOled.init();
-  OzOled.printString("monitor", 1, 0);
-  OzOled.printString("     km/h", 1, 2);
-  OzOled.printString("     Hz in", 1, 3);
-  OzOled.printString("     Hz out", 1, 4);
+  //OzOled.init();
+  //OzOled.printString("monitor", 1, 0);
+  //OzOled.printString("     km/h", 1, 2);
+  //OzOled.printString("     Hz in", 1, 3);
+  //OzOled.printString("     Hz out", 1, 4);
+  Wire.begin(address);
+  Wire.onReceive(receiveEvent);
+
   tone(pulseOutputPin, freqArr[freqIndex]);
+  pinMode(pulseInputPin, INPUT_PULLUP);
   attachPCINT(digitalPinToPCINT(pulseInputPin), interruption, CHANGE);
 }
 
@@ -57,7 +65,7 @@ void loop(){
     int indexMax = sizeof(freqArr)/sizeof(int);
     freqIndex = (++freqIndex)%indexMax;
     tone(pulseOutputPin, freqArr[freqIndex]);
-    myPrintLong(freqArr[freqIndex], 1, 4);
+    //myPrintLong(freqArr[freqIndex], 1, 4);
     freqTime += FREQ_DURATION;
   }
   
@@ -72,10 +80,10 @@ void loop(){
 		interrupts();
     // 周波数算出
     long freq = (long)((pulseNum - beforePulseNum) * 1000000 / spansTotal);
-    if(0 < freq){
-      myPrintLong(long(freq/10), 1, 2);
-      myPrintLong(freq, 1, 3);
-    }
+    //if(0 < freq){
+    //  myPrintLong(long(freq/10), 1, 2);
+    //  myPrintLong(freq, 1, 3);
+    //}
     beforePulseNum = pulseNum;
     freqOutputTime += HALF_SECOND;
   }
@@ -84,32 +92,46 @@ void loop(){
 volatile unsigned long beforeTime = 0;
 // 割り込み処理（カウント）
 void interruption(){
+  // 立ち上がり時
   if(digitalRead(pulseInputPin) == HIGH){
     counter++;
     if(counter < 0){
       counter = 0;
     }
+    // 波長をusで取得・加算
     unsigned long time = micros();
     pulseSpans += time - beforeTime;
     beforeTime = time;
   }
 }
 
-// long変数表示処理
-void myPrintLong(long value, int x, int y){
-  char spacer = ' ';
-  if(10000 <= value){
-    spacer = '0';
-    value = value%10000;
+/**
+ * I2C通信リクエスト割り込み処理
+ */
+void receiveEvent(int value){
+  if(Wire.available()){
+
   }
-  OzOled.setCursorXY(x,y);
-  for(int d=1000; 0<d; d/=10){
-    if(value/d == 0){
-      OzOled.printChar(spacer);
-    }
-    else{
-      OzOled.printNumber(value);
-      break;
-    }
+  while(Wire.available()){
+    Wire.read();
   }
 }
+
+// long変数表示処理
+//void myPrintLong(long value, int x, int y){
+//  char spacer = ' ';
+//  if(10000 <= value){
+//    spacer = '0';
+//    value = value%10000;
+//  }
+//  OzOled.setCursorXY(x,y);
+//  for(int d=1000; 0<d; d/=10){
+//    if(value/d == 0){
+//      OzOled.printChar(spacer);
+//    }
+//    else{
+//      OzOled.printNumber(value);
+//      break;
+//    }
+//  }
+//}
