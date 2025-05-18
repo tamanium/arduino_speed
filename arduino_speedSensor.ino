@@ -102,7 +102,7 @@ void loop(){
     //buffer[FREQ] = (int)freqLong;
     //buffer[SPEED] = (int)(freqLong / 10);
     buffer[FREQ] = (buffer[FREQ]+1)%0xFF;
-    buffer[SPEED] = (buffer[FREQ]+2)%0xFF;
+    buffer[SPEED] = (buffer[SPEED]+2)%0xFF;
     
     #ifdef DEBUG_MODE
       if(0 < freq){
