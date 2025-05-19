@@ -134,8 +134,6 @@ void interruption(){
   }
 }
 
-
-
 #ifdef DEBUG_MODE
 	/**
 	 * long変数表示処理
@@ -178,7 +176,7 @@ void interruption(){
     else{
      sendData = -1;
     }
-    Wire.write(byte((data>>8)&0xFF))
-    Wire.write(byte(data&0xFF));
+    Wire.write(byte((sendData>>8)&0xFF));
+    Wire.write(byte(sendData&0xFF));
   }
 #endif
