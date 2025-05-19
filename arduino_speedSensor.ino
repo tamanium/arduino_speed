@@ -18,12 +18,14 @@
 // 定数
 const int HALF_SECOND = 527;
 const int FREQ_DURATION = HALF_SECOND * 20;
-const int FREQ = 0;
-const int SPEED = 1;
+const int FREQ_MAX = 10000;
+const byte FREQ_IN = 0x00;
+const byte FREQ_OUT = 0x01;
 // 変数
 long counter = 0;
-byte buffer[2] = {0x02, 0x03};
-int regIndex = 0;
+int freqBuffer[2] = {-1, -1};
+
+byte regIndex = 0;
 
 int freqArr[] = {
   10, 50,
@@ -79,8 +81,12 @@ void loop(){
   // 周波数変更
   #ifdef PULSE_OUTPUT_MODE
     if(freqTime <= time){
+      // 周波数配列インデックスをインクリメント
       freqIndex = (++freqIndex)%freqArrSize;
+      // 出力周波数変更
       tone(pulseOutputPin, freqArr[freqIndex]);
+      // 出力バッファに上記周波数値を代入
+      freqBuffer[FREQ_OUT] = freqArr[freqIndex]%FREQ_MAX;
       #ifdef DEBUG_MODE
         myPrintLong(freqArr[freqIndex], 1, 4);
       #endif
@@ -98,16 +104,13 @@ void loop(){
     // 割り込み再開
 		interrupts();
     // 周波数算出
-    long freqLong = (long)((pulseNum - beforePulseNum) * 1000000 / spansTotal);
-    //buffer[FREQ] = (int)freqLong;
-    //buffer[SPEED] = (int)(freqLong / 10);
-    buffer[FREQ] = (buffer[FREQ]+1)%0xFF;
-    buffer[SPEED] = (buffer[SPEED]+2)%0xFF;
+    int freqInt = (int)((pulseNum - beforePulseNum) * 1000000 / spansTotal);
+    freqBuffer[FREQ_IN] = (freqInt)%FREQ_MAX;
     
     #ifdef DEBUG_MODE
       if(0 < freq){
-        myPrintLong(long(freq/10), 1, 2);
-        myPrintLong(freq, 1, 3);
+        myPrintLong(long(freqInt/10), 1, 2);
+        myPrintLong(long(freqInt), 1, 3);
       }
     #endif
     beforePulseNum = pulseNum;
@@ -139,38 +142,40 @@ void interruption(){
    */  
   void myPrintLong(long value, int x, int y){
     char spacer = ' ';
-    if(10000 <= value){
+    if(FREQ_MAX <= value){
       spacer = '0';
-      value = value%10000;
+      value = value%FREQ_MAX;
     }
     OzOled.setCursorXY(x,y);
-    for(int d=1000; 0<d; d/=10){
+    for(int d=FREQ_MAX; 0<d; d/=10){
       if(value/d == 0){
         OzOled.printChar(spacer);
       }
       else{
         OzOled.printNumber(value);
-        break;
+        return;
       }
     }
   }
 #else
   /**
-   * I2C通信受信割り込み処理+
+   * I2C通信受信割り込み処理
    */
   void receiveEvent(int numByte){
     while(0 < Wire.available()){
       regIndex = Wire.read();
-      if(0x01 < regIndex){
-        regIndex = 0;
-      }
     }
   }
 
   /**
    * I2C通信リクエスト割り込み処理
    */
-  void requestEvent(){
-    Wire.write(buffer[regIndex]);
+  void requestEvent(){ 
+    if(regIndex==FREQ_IN || regIndex==FREQ_OUT){
+      Wire.write(freqBuffer[regIndex]);
+      return;
+    }
+    // エラー時は-1を送信
+    Wire.write(-1);
   }
 #endif
