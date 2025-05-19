@@ -169,16 +169,16 @@ void interruption(){
    * I2C通信リクエスト割り込み処理
    */
   void requestEvent(){ 
-    int sendData = 0;
+    int sendData = -1;
     if(regIndex==FREQ_IN || regIndex==FREQ_OUT){
       sendData = freqBuffer[regIndex];
     }
-    Wire.write(byte(sendData/10));
+    //Wire.write(byte(sendData/10));
 
-    //byte sendDataArr[2] = {byte(sendData>>8), byte(sendData&0xFF)};
-    //Wire.write(sendDataArr, 2);
+    byte sendDataArr[2] = {byte(sendData>>8), byte(sendData&0xFF)};
+    Wire.write(sendDataArr, 2);
     
-    //Wire.write((byte)(sendData>>8));
-    //Wire.write((byte)(sendData&0xFF));
+    //Wire.write(byte(sendData>>8));
+    //Wire.write(byte(sendData&0xFF));
   }
 #endif
