@@ -171,11 +171,14 @@ void interruption(){
    * I2C通信リクエスト割り込み処理
    */
   void requestEvent(){ 
+    int sendData;
     if(regIndex==FREQ_IN || regIndex==FREQ_OUT){
-      Wire.write(freqBuffer[regIndex]);
-      return;
+      sendData = freqBuffer[regIndex];
     }
-    // エラー時は-1を送信
-    Wire.write(-1);
+    else{
+     sendData = -1;
+    }
+    Wire.write(byte((data>>8)&0xFF))
+    Wire.write(byte(data&0xFF));
   }
 #endif
