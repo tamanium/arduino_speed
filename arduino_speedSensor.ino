@@ -176,7 +176,7 @@ void interruption(){
     else{
      sendData = -1;
     }
-    Wire.write(byte((sendData>>8)&0xFF));
-    Wire.write(byte(sendData&0xFF));
+    Wire.write((byte)(sendData>>8));
+    Wire.write((byte)(sendData&0xFF));
   }
 #endif
