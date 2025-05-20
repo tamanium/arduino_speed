@@ -7,7 +7,7 @@ GND   ┃       ┃ Pin0 SDA
       ┗━━━━━━━┛
 */
 
-#define DEBUG_MODE
+//#define DEBUG_MODE
 #define PULSE_OUTPUT_MODE
 #ifdef DEBUG_MODE
   #include <TinyWireM.h>
@@ -18,11 +18,11 @@ GND   ┃       ┃ Pin0 SDA
 #include <PinChangeInterrupt.h>
 
 // 速度パルス検知ピン
-#define pulseInputPin 3
+#define pulseInputPin 4
 // パルス出力ピン
 #define pulseOutputPin 1
 // 電圧測定ピン
-#define adcInputPin 4
+#define adcInputPin 3
 // I2Cアドレス
 #define address 0x55
 
