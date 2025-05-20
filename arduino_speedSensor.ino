@@ -77,7 +77,6 @@ void setup(){
     tone(pulseOutputPin, freqArr[freqIndex]);
     pinMode(pulseInputPin, INPUT_PULLUP);
   #endif
-  //pinMode(adcInputPin, INPUT);
   attachPCINT(digitalPinToPCINT(pulseInputPin), interruption, CHANGE);
 }
 
@@ -169,7 +168,7 @@ void interruption(){
       value = value%FREQ_MAX;
     }
     OzOled.setCursorXY(x,y);
-    for(int d=FREQ_MAX; 0<d; d/=10){
+    for(int d=FREQ_MAX; 1<d; d/=10){
       if(value/d == 0){
         OzOled.printChar(spacer);
       }
