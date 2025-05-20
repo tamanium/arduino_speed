@@ -1,10 +1,10 @@
 /*
-      ┏━━┳━━┓
-Reset ┃     ┃ VCC
-Pin3  ┃     ┃ Pin2 SCK
-Pin4  ┃     ┃ Pin1
-GND   ┃     ┃ Pin0 SDA
-      ┗━━━━━┛
+      ┏━━┓_┏━━┓
+Reset ┃o      ┃ VCC
+Pin3  ┃       ┃ Pin2 SCK
+Pin4  ┃       ┃ Pin1
+GND   ┃       ┃ Pin0 SDA
+      ┗━━━━━━━┛
 */
 
 #define DEBUG_MODE
@@ -77,7 +77,7 @@ void setup(){
     tone(pulseOutputPin, freqArr[freqIndex]);
     pinMode(pulseInputPin, INPUT_PULLUP);
   #endif
-  pinMode(adcInputPin, INPUT);
+  //pinMode(adcInputPin, INPUT);
   attachPCINT(digitalPinToPCINT(pulseInputPin), interruption, CHANGE);
 }
 
