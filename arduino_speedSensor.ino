@@ -17,7 +17,7 @@
 
 // 定数
 const int HALF_SECOND = 527;
-const int FREQ_DURATION = HALF_SECOND * 20;
+const int FREQ_DURATION = HALF_SECOND * 10;
 const int FREQ_MAX = 10000;
 const byte FREQ_IN = 0x00;
 const byte FREQ_OUT = 0x01;
@@ -39,8 +39,7 @@ int freqArr[] = {
   800, 850,
   900, 950,
   1000,1050,
-  1100,1150,
-  1200,1250
+  1100
 };
 int freqArrSize = sizeof(freqArr)/sizeof(int);
 
