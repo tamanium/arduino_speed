@@ -1,4 +1,13 @@
-//#define DEBUG_MODE
+/*
+      ┏━━┳━━┓
+Reset ┃     ┃ VCC
+Pin3  ┃     ┃ Pin2 SCK
+Pin4  ┃     ┃ Pin1
+GND   ┃     ┃ Pin0 SDA
+      ┗━━━━━┛
+*/
+
+#define DEBUG_MODE
 #define PULSE_OUTPUT_MODE
 #ifdef DEBUG_MODE
   #include <TinyWireM.h>
@@ -11,7 +20,9 @@
 // 速度パルス検知ピン
 #define pulseInputPin 3
 // パルス出力ピン
-#define pulseOutputPin 4
+#define pulseOutputPin 1
+// 電圧測定ピン
+#define adcInputPin 4
 // I2Cアドレス
 #define address 0x55
 
@@ -19,11 +30,13 @@
 const int HALF_SECOND = 527;
 const int FREQ_DURATION = HALF_SECOND * 10;
 const int FREQ_MAX = 10000;
-const byte FREQ_IN = 0x00;
+// レジスタアドレス
+const byte FREQ_IN  = 0x00;
 const byte FREQ_OUT = 0x01;
+const byte ADC_IN   = 0x02;
 // 変数
 long counter = 0;
-int freqBuffer[2] = {-1, -1};
+int dataBuffer[3] = {-1, -1, 0};
 
 byte regIndex = 0;
 
@@ -51,6 +64,7 @@ void setup(){
     OzOled.printString("monitor", 1, 0);
     OzOled.printString("     km/h", 1, 2);
     OzOled.printString("     Hz in", 1, 3);
+    OzOled.printString("     pt adc", 1, 5);
   #else
     Wire.begin(address);
     Wire.onReceive(receiveEvent);
@@ -63,19 +77,21 @@ void setup(){
     tone(pulseOutputPin, freqArr[freqIndex]);
     pinMode(pulseInputPin, INPUT_PULLUP);
   #endif
+  pinMode(adcInputPin, INPUT);
   attachPCINT(digitalPinToPCINT(pulseInputPin), interruption, CHANGE);
 }
 
 
-long beforeCounter = 0;  // 前回総パルス数
-long beforePulseNum = 0; // 前回単位時間あたりパルス数
-long freqOutputTime = 0; // 周波数出力時間
-long freqTime = 0;       // 周波数変更時間
-long pulseSpans = 0;     // 単位時間あたり波長合計
+unsigned long beforeCounter = 0;  // 前回総パルス数
+unsigned long beforePulseNum = 0; // 前回単位時間あたりパルス数
+unsigned long freqOutputTime = 0; // 周波数出力時間
+unsigned long adcInputTime = 0;   // 電圧測定時間
+unsigned long freqTime = 0;       // 周波数変更時間
+unsigned long pulseSpans = 0;     // 単位時間あたり波長合計
 
 void loop(){
   // システム時刻取得(ms)
-  long time = millis();
+  unsigned long time = millis();
 
   // 周波数変更
   #ifdef PULSE_OUTPUT_MODE
@@ -85,9 +101,9 @@ void loop(){
       // 出力周波数変更
       tone(pulseOutputPin, freqArr[freqIndex]);
       // 出力バッファに上記周波数値を代入
-      freqBuffer[FREQ_OUT] = freqArr[freqIndex]%FREQ_MAX;
+      dataBuffer[FREQ_OUT] = freqArr[freqIndex]%FREQ_MAX;
       #ifdef DEBUG_MODE
-        myPrintLong(freqArr[freqIndex], 1, 4);
+        myPrintLong(dataBuffer[FREQ_OUT], 1, 4);
       #endif
       freqTime += FREQ_DURATION;
     }
@@ -104,16 +120,25 @@ void loop(){
 		interrupts();
     // 周波数算出
     int freqInt = (int)((pulseNum - beforePulseNum) * 1000000 / spansTotal);
-    freqBuffer[FREQ_IN] = (freqInt)%FREQ_MAX;
+    dataBuffer[FREQ_IN] = (freqInt)%FREQ_MAX;
     
     #ifdef DEBUG_MODE
-      if(0 < freq){
+      if(0 < freqInt){
         myPrintLong(long(freqInt/10), 1, 2);
-        myPrintLong(long(freqInt), 1, 3);
+        myPrintLong(dataBuffer[FREQ_IN], 1, 3);
       }
     #endif
     beforePulseNum = pulseNum;
     freqOutputTime += HALF_SECOND;
+  }
+
+  // 1秒ごとに電圧測定
+  if(adcInputTime <= time){
+    dataBuffer[ADC_IN] = analogRead(adcInputPin);
+    #ifdef DEBUG_MODE
+      myPrintLong(dataBuffer[ADC_IN], 1, 5);
+    #endif
+    adcInputTime += HALF_SECOND * 2;
   }
 }
 
@@ -169,15 +194,13 @@ void interruption(){
    */
   void requestEvent(){ 
     int sendData = -1;
-    if(regIndex==FREQ_IN || regIndex==FREQ_OUT){
-      sendData = freqBuffer[regIndex];
+    if(regIndex==FREQ_IN
+      || regIndex==FREQ_OUT
+      || regIndex==ADC_IN){
+      sendData = dataBuffer[regIndex];
     }
-    //Wire.write(byte(sendData/10));
-
+    
     byte sendDataArr[2] = {byte(sendData>>8), byte(sendData&0xFF)};
     Wire.write(sendDataArr, 2);
-    
-    //Wire.write(byte(sendData>>8));
-    //Wire.write(byte(sendData&0xFF));
   }
 #endif
